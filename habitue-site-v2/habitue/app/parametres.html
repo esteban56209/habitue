@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paramètres — Habitué</title>
+<meta name="description" content="Paramètres du compte.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<header class="top" id="top"></header>
+<main>
+<section class="section"><div class="wrap narrow">
+  <h1 style="font-size:2rem">Paramètres</h1>
+  <div class="card">
+    <h2 style="font-size:1.2rem">Mon compte</h2>
+    <p class="muted">Connecté avec : <strong id="email">—</strong></p>
+    <p class="muted small">Compte créé le <span id="since">—</span></p>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h2 style="font-size:1.2rem">Changer le code PIN</h2>
+    <form id="f-pin" novalidate>
+      <label for="pin">Nouveau code PIN (4 à 6 chiffres)</label>
+      <input id="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
+      <div id="msg-pin" class="msg hidden" role="alert"></div>
+      <button class="btn" style="margin-top:14px">Changer le PIN</button>
+    </form>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h2 style="font-size:1.2rem">Changer le mot de passe</h2>
+    <form id="f-pw" novalidate>
+      <label for="pw">Nouveau mot de passe</label>
+      <input id="pw" type="password" autocomplete="new-password" minlength="8">
+      <div id="msg-pw" class="msg hidden" role="alert"></div>
+      <button class="btn" style="margin-top:14px">Changer le mot de passe</button>
+    </form>
+  </div>
+  <div class="card" style="margin-top:16px;border-color:#FECACA">
+    <h2 style="font-size:1.2rem;color:var(--red)">Supprimer mon compte</h2>
+    <p class="muted">Supprime définitivement ton compte, ta carte et toutes les données de tes clients. Action irréversible.</p>
+    <form id="f-del" novalidate>
+      <label for="confirm">Tape SUPPRIMER pour confirmer</label>
+      <input id="confirm" autocomplete="off">
+      <div id="msg-del" class="msg hidden" role="alert"></div>
+      <button class="btn danger" style="margin-top:14px">Supprimer définitivement</button>
+    </form>
+  </div>
+</div></section>
+</main>
+<footer class="foot" id="foot"></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="../js/config.js"></script>
+<script src="../js/common.js"></script>
+<script>
+let ctx = null;
+(async () => {
+  // Après un clic sur « Mot de passe oublié », l'utilisateur arrive ici déjà connecté par le lien reçu.
+  ctx = await H.requireMerchant({ allowSetup: true }); if (!ctx) return;
+  H.$("#email").textContent = ctx.user.email;
+  H.$("#since").textContent = H.date(ctx.user.created_at);
+})();
+H.$("#f-pin").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const pin = H.$("#pin").value;
+  if (!/^[0-9]{4,6}$/.test(pin)) return H.show("#msg-pin", "Le code PIN doit contenir 4 à 6 chiffres.");
+  if (!ctx || !ctx.merchant || !ctx.card) return H.show("#msg-pin", "Crée d'abord ta carte dans « Ma carte ».");
+  const { error } = await H.sb.rpc("save_merchant", { p_business_name: ctx.merchant.business_name, p_pin: pin,
+    p_stamps_required: ctx.card.stamps_required, p_reward: ctx.card.reward, p_active: ctx.card.active });
+  if (error) return H.show("#msg-pin", H.fr(error));
+  H.$("#pin").value = ""; H.show("#msg-pin", "Code PIN modifié.", "ok");
+});
+H.$("#f-pw").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const pw = H.$("#pw").value;
+  if (pw.length < 8) return H.show("#msg-pw", "Le mot de passe doit contenir au moins 8 caractères.");
+  const { error } = await H.sb.auth.updateUser({ password: pw });
+  if (error) return H.show("#msg-pw", H.fr(error));
+  H.$("#pw").value = ""; H.show("#msg-pw", "Mot de passe modifié.", "ok");
+});
+H.$("#f-del").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (H.$("#confirm").value.trim() !== "SUPPRIMER") return H.show("#msg-del", "Tape exactement SUPPRIMER (en majuscules) pour confirmer.");
+  const { error } = await H.sb.rpc("delete_my_account");
+  if (error) return H.show("#msg-del", H.fr(error));
+  await H.sb.auth.signOut(); location.href = "../index.html";
+});
+</script>
+</body>
+</html>

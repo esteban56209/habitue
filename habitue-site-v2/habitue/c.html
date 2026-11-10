@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ma carte de fidélité — Habitué</title>
+<meta name="description" content="Votre carte de fidélité.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<main>
+<section class="section" style="padding:24px 0"><div class="wrap narrow">
+  <div id="loading" class="center muted">Chargement de la carte…</div>
+  <div id="fatal" class="msg hidden" role="alert"></div>
+
+  <div id="join" class="card hidden">
+    <h1 style="font-size:1.6rem" id="j-name"></h1>
+    <p id="j-reward" style="font-weight:700"></p>
+    <p class="muted">Crée ta carte de fidélité en 10 secondes. Sans application.</p>
+    <form id="f-join" novalidate>
+      <label for="first">Prénom</label>
+      <input id="first" maxlength="40" autocomplete="given-name" required>
+      <label for="contact">Téléphone ou e-mail</label>
+      <input id="contact" maxlength="120" autocomplete="tel" inputmode="email" required>
+      <div class="hint">Sert uniquement à retrouver ta carte si tu changes de téléphone.</div>
+      <div id="msg-join" class="msg hidden" role="alert"></div>
+      <button class="btn block" id="go-join" style="margin-top:18px">Créer ma carte</button>
+    </form>
+    <p class="small muted" style="margin-top:14px">Tes données sont utilisées uniquement pour ce programme de fidélité. <a href="confidentialite.html">En savoir plus</a></p>
+  </div>
+
+  <div id="card" class="hidden">
+    <div class="loyalty">
+      <h2 id="c-name"></h2><div class="sub" id="c-hello"></div>
+      <div class="stamps" id="c-stamps"></div>
+      <div class="reward-line" id="c-reward"></div>
+    </div>
+    <div id="msg-card" class="msg hidden" role="status"></div>
+    <button class="btn block" id="open-pin" style="margin-top:16px">Valider mon passage</button>
+    <div class="card hidden" id="pin-panel" style="margin-top:16px">
+      <h3>À remplir par le commerçant</h3>
+      <form id="f-pin" novalidate>
+        <label for="pin">Code PIN du commerce</label>
+        <input id="pin" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
+        <div class="row" style="margin-top:14px"><button class="btn" id="go-pin" style="flex:1">Valider</button>
+          <button class="btn ghost" type="button" id="cancel-pin">Annuler</button></div>
+      </form>
+    </div>
+    <p class="small muted center" style="margin-top:20px">Carte propulsée par <a href="index.html">Habitué</a> · <a href="#" id="forget">Ce n'est pas moi</a></p>
+  </div>
+</div></section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="js/config.js"></script>
+<script src="js/common.js"></script>
+<script>
+const cardId = new URLSearchParams(location.search).get("id") || "";
+const KEY = "habitue_token_" + cardId;
+// Le jeton est gardé dans le téléphone. Si le stockage est bloqué (navigation privée), on le garde en mémoire.
+let memToken = null;
+const store = {
+  get() { try { return localStorage.getItem(KEY) || memToken; } catch (e) { return memToken; } },
+  set(v) { memToken = v; try { localStorage.setItem(KEY, v); } catch (e) {} },
+  del() { memToken = null; try { localStorage.removeItem(KEY); } catch (e) {} }
+};
+const only = (id) => ["loading", "join", "card"].forEach((x) => H.$("#" + x).classList.toggle("hidden", x !== id));
+function fatal(t) { H.$("#loading").classList.add("hidden"); H.show("#fatal", t); }
+
+function renderCard(c) {
+  only("card");
+  H.$("#c-name").textContent = c.business_name;
+  H.$("#c-hello").textContent = "Bonjour " + c.first_name + " 👋";
+  const full = c.stamps >= c.stamps_required;
+  let html = "";
+  for (let i = 0; i < c.stamps_required; i++) {
+    const last = i === c.stamps_required - 1;
+    html += `<div class="stamp ${i < c.stamps ? "on" : ""} ${last ? "gift" : ""}">${i < c.stamps ? "✓" : last ? "🎁" : i + 1}</div>`;
+  }
+  H.$("#c-stamps").innerHTML = html;
+  H.$("#c-reward").textContent = full ? "🎉 Récompense disponible : " + c.reward
+    : "🎁 Encore " + (c.stamps_required - c.stamps) + " tampon" + (c.stamps_required - c.stamps > 1 ? "s" : "") + " pour : " + c.reward;
+  H.$("#open-pin").textContent = full ? "Utiliser ma récompense" : "Valider mon passage";
+  H.$("#open-pin").disabled = !c.active;
+  if (!c.active) H.show("#msg-card", "Cette carte est momentanément désactivée par le commerçant.");
+}
+async function loadCard() {
+  const token = store.get();
+  if (token) {
+    const { data, error } = await H.sb.rpc("get_my_card", { p_token: token });
+    if (error) return fatal(H.fr(error));
+    if (data && data[0]) return renderCard(data[0]);
+    store.del();
+  }
+  const { data, error } = await H.sb.rpc("get_card_public", { p_card_id: cardId });
+  if (error) return fatal(H.fr(error));
+  if (!data || !data[0] || !data[0].active) return fatal("Cette carte de fidélité est introuvable ou désactivée.");
+  only("join");
+  H.$("#j-name").textContent = data[0].business_name;
+  H.$("#j-reward").textContent = "🎁 " + data[0].stamps_required + " tampons = " + data[0].reward;
+}
+(async () => {
+  if (!H.sb) return fatal("Site non configuré.");
+  if (!/^[0-9a-f-]{36}$/i.test(cardId)) return fatal("Lien de carte invalide. Rescanne le QR code du commerce.");
+  loadCard();
+})();
+H.$("#f-join").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  H.busy(H.$("#go-join"), true);
+  const { data, error } = await H.sb.rpc("join_card", { p_card_id: cardId, p_first_name: H.$("#first").value, p_contact: H.$("#contact").value });
+  H.busy(H.$("#go-join"), false);
+  if (error) return H.show("#msg-join", H.fr(error));
+  store.set(data); loadCard();
+});
+H.$("#open-pin").addEventListener("click", () => { H.$("#pin-panel").classList.remove("hidden"); H.show("#msg-card", ""); H.$("#pin").focus(); });
+H.$("#cancel-pin").addEventListener("click", () => { H.$("#pin-panel").classList.add("hidden"); H.$("#pin").value = ""; });
+H.$("#f-pin").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  H.busy(H.$("#go-pin"), true);
+  const { data, error } = await H.sb.rpc("add_stamp", { p_token: store.get(), p_pin: H.$("#pin").value });
+  H.busy(H.$("#go-pin"), false);
+  H.$("#pin").value = "";
+  if (error) return H.show("#msg-card", H.fr(error));
+  const r = data && data[0]; if (!r) return H.show("#msg-card", "Une erreur est survenue. Réessaie.");
+  const texts = {
+    STAMPED: ["Tampon ajouté ✓", "ok"], REWARD_READY: ["Carte complète ! La récompense est disponible 🎉", "ok"],
+    REWARD_USED: ["Récompense utilisée. La carte repart à zéro.", "ok"],
+    WRONG_PIN: ["Code PIN incorrect.", "err"], TOO_FAST: ["Un tampon vient déjà d'être ajouté. Patiente quelques secondes.", "err"],
+    LOCKED: ["Trop de codes incorrects. Validation bloquée pendant 15 minutes.", "err"] };
+  const [t, k] = texts[r.status] || ["Une erreur est survenue.", "err"];
+  if (k === "ok") H.$("#pin-panel").classList.add("hidden");
+  await loadCard(); H.show("#msg-card", t, k);
+});
+H.$("#forget").addEventListener("click", (e) => { e.preventDefault(); store.del(); H.show("#msg-card", ""); loadCard(); });
+</script>
+</body>
+</html>

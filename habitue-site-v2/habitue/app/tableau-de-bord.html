@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tableau de bord — Habitué</title>
+<meta name="description" content="Tableau de bord commerçant.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<header class="top" id="top"></header>
+<main>
+<section class="section"><div class="wrap">
+  <h1 style="font-size:2rem" id="hello">Tableau de bord</h1>
+  <div id="msg" class="msg hidden" role="alert"></div>
+  <div class="card hidden" id="plan" style="margin-top:16px">
+    <div class="row" style="justify-content:space-between">
+      <div><strong id="plan-name"></strong><div class="muted small" id="plan-detail"></div></div>
+      <a class="btn small hidden" id="plan-cta"></a>
+    </div>
+  </div>
+  <div class="grid c3" style="margin-top:16px">
+    <div class="card"><div class="stat" id="s-customers">—</div><div class="stat-label">clients inscrits</div></div>
+    <div class="card"><div class="stat" id="s-stamps">—</div><div class="stat-label">tampons sur 30 jours</div></div>
+    <div class="card"><div class="stat" id="s-rewards">—</div><div class="stat-label">récompenses offertes sur 30 jours</div></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="row" style="justify-content:space-between"><h2 style="font-size:1.3rem;margin:0">Derniers passages</h2>
+      <a class="btn small ghost" href="ma-carte.html">Voir mon QR code</a></div>
+    <div class="table-wrap" style="margin-top:12px"><table>
+      <thead><tr><th>Client</th><th>Action</th><th>Date</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="3" class="muted">Chargement…</td></tr></tbody>
+    </table></div>
+  </div>
+</div></section>
+</main>
+<footer class="foot" id="foot"></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="../js/config.js"></script>
+<script src="../js/common.js"></script>
+<script>
+(async () => {
+  const ctx = await H.requireMerchant(); if (!ctx) return;
+  H.$("#hello").textContent = ctx.merchant.business_name;
+  const since = new Date(Date.now() - 30 * 864e5).toISOString();
+  const [c, st, rw, recent, custs] = await Promise.all([
+    H.sb.from("customers").select("id", { count: "exact", head: true }),
+    H.sb.from("stamps").select("id", { count: "exact", head: true }).eq("kind", "stamp").gte("created_at", since),
+    H.sb.from("stamps").select("id", { count: "exact", head: true }).eq("kind", "reward").gte("created_at", since),
+    H.sb.from("stamps").select("id,customer_id,kind,created_at").order("created_at", { ascending: false }).limit(15),
+    H.sb.from("customers").select("id,first_name")
+  ]);
+  const err = c.error || st.error || rw.error || recent.error || custs.error;
+  if (err) return H.show("#msg", H.fr(err));
+  H.$("#s-customers").textContent = c.count ?? 0;
+  // Formule en cours
+  const limit = H.cfg.FREE_LIMIT || 30, n = c.count ?? 0;
+  H.$("#plan").classList.remove("hidden");
+  if (ctx.merchant.plan === "paid") {
+    H.$("#plan-name").textContent = "Formule Commerçant";
+    H.$("#plan-detail").textContent = "Clients illimités.";
+  } else {
+    H.$("#plan-name").textContent = "Formule Découverte";
+    H.$("#plan-detail").textContent = n + " / " + limit + " clients inscrits." + (n >= limit ? " Limite atteinte : les nouveaux clients ne peuvent plus s'inscrire." : "");
+    const cta = H.$("#plan-cta"); cta.classList.remove("hidden");
+    if (H.cfg.PAYMENT_LINK) {
+      // Le paiement se fait sur la page sécurisée du prestataire de paiement, jamais sur ce site.
+      const u = new URL(H.cfg.PAYMENT_LINK);
+      u.searchParams.set("client_reference_id", ctx.merchant.id);
+      u.searchParams.set("prefilled_email", ctx.user.email);
+      cta.href = u.href; cta.target = "_blank"; cta.rel = "noopener";
+      cta.textContent = "Passer à la formule Commerçant (" + (H.cfg.PAID_PRICE || "15 €/mois") + ")";
+    } else {
+      cta.href = "../contact.html";
+      cta.textContent = "Passer en clients illimités : nous contacter";
+    }
+  }
+  H.$("#s-stamps").textContent = st.count ?? 0;
+  H.$("#s-rewards").textContent = rw.count ?? 0;
+  const names = Object.fromEntries((custs.data || []).map((x) => [x.id, x.first_name]));
+  H.$("#rows").innerHTML = (recent.data || []).length
+    ? recent.data.map((r) => `<tr><td>${H.esc(names[r.customer_id] || "Client")}</td><td>${r.kind === "reward" ? "🎁 Récompense utilisée" : "Tampon"}</td><td>${H.dateTime(r.created_at)}</td></tr>`).join("")
+    : `<tr><td colspan="3" class="muted">Aucun passage pour l'instant. Imprime ton QR code et pose-le au comptoir.</td></tr>`;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connexion — Habitué</title>
+<meta name="description" content="Connectez-vous à votre espace commerçant Habitué.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top" id="top"></header>
+<main>
+<section class="section"><div class="wrap narrow"><div class="card">
+  <h1 style="font-size:1.8rem">Connexion</h1>
+  <form id="f" novalidate>
+    <label for="email">E-mail</label>
+    <input id="email" type="email" autocomplete="email" required>
+    <label for="password">Mot de passe</label>
+    <input id="password" type="password" autocomplete="current-password" required>
+    <div id="msg" class="msg hidden" role="alert"></div>
+    <button class="btn block" id="go" style="margin-top:20px">Se connecter</button>
+  </form>
+  <p class="small" style="margin-top:16px"><a href="#" id="forgot">Mot de passe oublié ?</a></p>
+  <p class="small">Pas encore de compte ? <a href="inscription.html">Créer un compte</a></p>
+</div></div></section>
+</main>
+<footer class="foot" id="foot"></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="js/config.js"></script>
+<script src="js/common.js"></script>
+<script>
+(async () => { if (await H.session()) location.href = "app/tableau-de-bord.html"; })();
+H.$("#f").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!H.sb) return H.show("#msg", "Site non configuré.");
+  H.busy(H.$("#go"), true);
+  const { error } = await H.sb.auth.signInWithPassword({ email: H.$("#email").value.trim(), password: H.$("#password").value });
+  H.busy(H.$("#go"), false);
+  if (error) return H.show("#msg", H.fr(error));
+  location.href = "app/tableau-de-bord.html";
+});
+H.$("#forgot").addEventListener("click", async (e) => {
+  e.preventDefault();
+  if (!H.sb) return H.show("#msg", "Site non configuré.");
+  const email = H.$("#email").value.trim();
+  if (!email) return H.show("#msg", "Entre d'abord ton e-mail ci-dessus, puis reclique sur « Mot de passe oublié ».");
+  const { error } = await H.sb.auth.resetPasswordForEmail(email, { redirectTo: new URL("app/parametres.html", location.href).href });
+  if (error) return H.show("#msg", H.fr(error));
+  H.show("#msg", "Si un compte existe avec cet e-mail, un lien de réinitialisation vient d'être envoyé.", "ok");
+});
+</script>
+</body>
+</html>
