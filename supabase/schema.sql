@@ -16,6 +16,9 @@ create table if not exists public.merchants (
   created_at timestamptz not null default now()
 );
 
+-- Formule du commerçant : 'free' (Découverte, 30 clients max) ou 'paid' (Commerçant, illimité)
+alter table public.merchants add column if not exists plan text not null default 'free' check (plan in ('free','paid'));
+
 -- La carte de fidélité du commerçant (une seule par commerce dans le MVP)
 create table if not exists public.cards (
   id uuid primary key default gen_random_uuid(),
@@ -90,7 +93,7 @@ revoke all on public.merchants, public.cards, public.customers, public.stamps,
   public.pin_failures, public.contact_messages, public.admins from anon, authenticated;
 
 -- Un commerçant connecté peut LIRE ses propres données (jamais le PIN ni les jetons)
-grant select (id, business_name, created_at) on public.merchants to authenticated;
+grant select (id, business_name, plan, created_at) on public.merchants to authenticated;
 grant select on public.cards to authenticated;
 grant select (id, card_id, merchant_id, first_name, contact, stamps, rewards_earned, created_at, last_visit_at)
   on public.customers to authenticated;
@@ -177,6 +180,11 @@ begin
   -- client déjà inscrit (nouveau téléphone, cache vidé) : on lui redonne accès à sa carte
   update customers set token_hash = v_hash where card_id = p_card_id and contact = p_contact;
   if found then return v_token; end if;
+  -- formule Découverte : 30 clients maximum
+  if (select plan from merchants where id = v_card.merchant_id) = 'free'
+     and (select count(*) from customers where card_id = p_card_id) >= 30 then
+    raise exception 'CARD_FULL';
+  end if;
   select count(*) into v_today from customers where card_id = p_card_id and created_at > now() - interval '1 day';
   if v_today >= 300 then raise exception 'TOO_MANY'; end if;
   insert into customers(card_id, merchant_id, first_name, contact, token_hash)
@@ -276,19 +284,30 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- Admin : vue d'ensemble des commerçants
-create or replace function public.admin_overview()
-returns table (merchant_id uuid, business_name text, email text, created_at timestamptz,
+drop function if exists public.admin_overview();
+create function public.admin_overview()
+returns table (merchant_id uuid, business_name text, email text, plan text, created_at timestamptz,
                customers bigint, stamps_30d bigint, last_activity timestamptz)
 language plpgsql stable security definer set search_path = public as $$
 begin
   if not public.is_admin() then raise exception 'FORBIDDEN'; end if;
   return query
-    select m.id, m.business_name, u.email::text, m.created_at,
+    select m.id, m.business_name, u.email::text, m.plan, m.created_at,
       (select count(*) from customers cu where cu.merchant_id = m.id),
       (select count(*) from stamps s where s.merchant_id = m.id and s.created_at > now() - interval '30 days'),
       (select max(s.created_at) from stamps s where s.merchant_id = m.id)
     from merchants m join auth.users u on u.id = m.id
     order by m.created_at desc;
+end $$;
+
+-- Admin : changer la formule d'un commerçant (après réception de son paiement)
+create or replace function public.admin_set_plan(p_merchant_id uuid, p_plan text)
+returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'FORBIDDEN'; end if;
+  if p_plan not in ('free','paid') then raise exception 'BAD_PLAN'; end if;
+  update merchants set plan = p_plan where id = p_merchant_id;
 end $$;
 
 -- Admin : messages de contact reçus
@@ -307,11 +326,13 @@ revoke all on function public.delete_my_account() from public, anon;
 revoke all on function public.is_admin() from public, anon;
 revoke all on function public.admin_overview() from public, anon;
 revoke all on function public.admin_messages() from public, anon;
+revoke all on function public.admin_set_plan(uuid,text) from public, anon;
 grant execute on function public.save_merchant(text,text,int,text,boolean) to authenticated;
 grant execute on function public.delete_my_account() to authenticated;
 grant execute on function public.is_admin() to authenticated;
 grant execute on function public.admin_overview() to authenticated;
 grant execute on function public.admin_messages() to authenticated;
+grant execute on function public.admin_set_plan(uuid,text) to authenticated;
 grant execute on function public.get_card_public(uuid) to anon, authenticated;
 grant execute on function public.join_card(uuid,text,text) to anon, authenticated;
 grant execute on function public.get_my_card(text) to anon, authenticated;

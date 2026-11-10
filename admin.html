@@ -22,7 +22,7 @@
       <div class="card"><div class="stat" id="a-stamps">—</div><div class="stat-label">tampons sur 30 jours</div></div>
     </div>
     <div class="card" style="margin-top:16px"><h2 style="font-size:1.3rem">Commerçants</h2>
-      <div class="table-wrap"><table><thead><tr><th>Commerce</th><th>E-mail</th><th>Inscrit le</th><th>Clients</th><th>Tampons 30 j</th><th>Dernière activité</th></tr></thead>
+      <div class="table-wrap"><table><thead><tr><th>Commerce</th><th>E-mail</th><th>Formule</th><th>Inscrit le</th><th>Clients</th><th>Tampons 30 j</th><th>Dernière activité</th><th></th></tr></thead>
       <tbody id="m-rows"></tbody></table></div></div>
     <div class="card" style="margin-top:16px"><h2 style="font-size:1.3rem">Messages de contact</h2>
       <div class="table-wrap"><table><thead><tr><th>Date</th><th>Nom</th><th>E-mail</th><th>Message</th></tr></thead>
@@ -36,9 +36,7 @@
 <script src="js/config.js"></script>
 <script src="js/common.js"></script>
 <script>
-(async () => {
-  const s = await H.session();
-  if (!s) { location.href = "connexion.html"; return; }
+async function load() {
   const [o, m] = await Promise.all([H.sb.rpc("admin_overview"), H.sb.rpc("admin_messages")]);
   if (o.error || m.error) return H.show("#msg", H.fr(o.error || m.error));
   H.$("#content").classList.remove("hidden");
@@ -46,11 +44,25 @@
   H.$("#a-merchants").textContent = rows.length;
   H.$("#a-customers").textContent = rows.reduce((n, r) => n + Number(r.customers), 0);
   H.$("#a-stamps").textContent = rows.reduce((n, r) => n + Number(r.stamps_30d), 0);
-  H.$("#m-rows").innerHTML = rows.map((r) => `<tr><td>${H.esc(r.business_name)}</td><td>${H.esc(r.email)}</td><td>${H.date(r.created_at)}</td>
-    <td>${r.customers}</td><td>${r.stamps_30d}</td><td>${H.dateTime(r.last_activity)}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">Aucun commerçant.</td></tr>`;
+  H.$("#m-rows").innerHTML = rows.map((r) => `<tr><td>${H.esc(r.business_name)}</td><td>${H.esc(r.email)}</td>
+    <td>${r.plan === "paid" ? "<strong>Commerçant</strong>" : "Découverte"}</td><td>${H.date(r.created_at)}</td>
+    <td>${r.customers}</td><td>${r.stamps_30d}</td><td>${H.dateTime(r.last_activity)}</td>
+    <td><button class="btn small ${r.plan === "paid" ? "ghost" : ""}" data-id="${H.esc(r.merchant_id)}" data-plan="${r.plan === "paid" ? "free" : "paid"}">${r.plan === "paid" ? "Repasser en Découverte" : "Activer Commerçant"}</button></td></tr>`).join("") || `<tr><td colspan="8" class="muted">Aucun commerçant.</td></tr>`;
   H.$("#c-rows").innerHTML = (m.data || []).map((r) => `<tr><td>${H.dateTime(r.created_at)}</td><td>${H.esc(r.name)}</td>
     <td><a href="mailto:${H.esc(r.email)}">${H.esc(r.email)}</a></td><td class="wrap-cell">${H.esc(r.message)}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">Aucun message.</td></tr>`;
+}
+(async () => {
+  const s = await H.session();
+  if (!s) { location.href = "connexion.html"; return; }
+  load();
 })();
+H.$("#m-rows").addEventListener("click", async (e) => {
+  const b = e.target.closest("button[data-id]"); if (!b) return;
+  H.busy(b, true);
+  const { error } = await H.sb.rpc("admin_set_plan", { p_merchant_id: b.dataset.id, p_plan: b.dataset.plan });
+  if (error) { H.busy(b, false); return H.show("#msg", H.fr(error)); }
+  load();
+});
 </script>
 </body>
 </html>

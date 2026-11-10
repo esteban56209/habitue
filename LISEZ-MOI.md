@@ -42,4 +42,6 @@ Site en HTML / CSS / JavaScript simples : rien à installer, rien à compiler.
   Quelqu'un qui connaît ce contact pourrait donc ouvrir la carte, mais pas
   ajouter de tampon (il faut le PIN du commerçant).
 - Une seule carte par commerce. La liste des clients affiche les 1000 derniers.
-- Pas de paiement en ligne : il sera ajouté en phase 7.
+- Deux formules : Découverte (30 clients max) et Commerçant (illimité). Le paiement se fait
+  par un lien de paiement externe (`PAYMENT_LINK` dans `js/config.js`) ; tu actives ensuite
+  le commerçant à la main depuis `admin.html`.

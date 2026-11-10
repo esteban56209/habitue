@@ -39,6 +39,7 @@
         [/BAD_CONTACT/, "Entre un numéro de téléphone ou un e-mail valide."],
         [/BAD_EMAIL/, "Entre une adresse e-mail valide."],
         [/BAD_MESSAGE/, "Ton message doit contenir entre 5 et 2000 caractères."],
+        [/CARD_FULL/, "Ce commerce ne peut pas accueillir de nouvelle carte pour le moment. Signale-le au commerçant."],
         [/CARD_NOT_FOUND/, "Cette carte de fidélité est introuvable ou désactivée."],
         [/CARD_INACTIVE/, "Cette carte est momentanément désactivée par le commerçant."],
         [/TOO_MANY/, "Trop de demandes pour le moment. Réessaie plus tard."],
@@ -57,7 +58,7 @@
     async requireMerchant(opts) {
       const s = await H.session();
       if (!s) { location.href = root + "connexion.html"; return null; }
-      const { data: merchant } = await H.sb.from("merchants").select("id,business_name,created_at").maybeSingle();
+      const { data: merchant } = await H.sb.from("merchants").select("id,business_name,plan,created_at").maybeSingle();
       const { data: card } = await H.sb.from("cards").select("*").maybeSingle();
       if ((!merchant || !card) && !(opts && opts.allowSetup)) { location.href = root + "app/ma-carte.html"; return null; }
       return { user: s.user, merchant, card };
@@ -68,7 +69,8 @@
 
   // ----- En-tête et pied de page communs -----
   async function layout() {
-    const page = location.pathname.split("/").pop() || "index.html";
+    // L'hébergeur peut retirer ".html" des adresses : on compare donc sans l'extension.
+    const page = (location.pathname.split("/").pop() || "index").replace(/\.html$/, "") + ".html";
     const s = await H.session();
     const link = (href, label) => `<a href="${root}${href}" class="${href.endsWith(page) ? "active" : ""}">${label}</a>`;
     let nav;

@@ -15,6 +15,12 @@
 <section class="section"><div class="wrap">
   <h1 style="font-size:2rem" id="hello">Tableau de bord</h1>
   <div id="msg" class="msg hidden" role="alert"></div>
+  <div class="card hidden" id="plan" style="margin-top:16px">
+    <div class="row" style="justify-content:space-between">
+      <div><strong id="plan-name"></strong><div class="muted small" id="plan-detail"></div></div>
+      <a class="btn small hidden" id="plan-cta"></a>
+    </div>
+  </div>
   <div class="grid c3" style="margin-top:16px">
     <div class="card"><div class="stat" id="s-customers">—</div><div class="stat-label">clients inscrits</div></div>
     <div class="card"><div class="stat" id="s-stamps">—</div><div class="stat-label">tampons sur 30 jours</div></div>
@@ -50,6 +56,28 @@
   const err = c.error || st.error || rw.error || recent.error || custs.error;
   if (err) return H.show("#msg", H.fr(err));
   H.$("#s-customers").textContent = c.count ?? 0;
+  // Formule en cours
+  const limit = H.cfg.FREE_LIMIT || 30, n = c.count ?? 0;
+  H.$("#plan").classList.remove("hidden");
+  if (ctx.merchant.plan === "paid") {
+    H.$("#plan-name").textContent = "Formule Commerçant";
+    H.$("#plan-detail").textContent = "Clients illimités.";
+  } else {
+    H.$("#plan-name").textContent = "Formule Découverte";
+    H.$("#plan-detail").textContent = n + " / " + limit + " clients inscrits." + (n >= limit ? " Limite atteinte : les nouveaux clients ne peuvent plus s'inscrire." : "");
+    const cta = H.$("#plan-cta"); cta.classList.remove("hidden");
+    if (H.cfg.PAYMENT_LINK) {
+      // Le paiement se fait sur la page sécurisée du prestataire de paiement, jamais sur ce site.
+      const u = new URL(H.cfg.PAYMENT_LINK);
+      u.searchParams.set("client_reference_id", ctx.merchant.id);
+      u.searchParams.set("prefilled_email", ctx.user.email);
+      cta.href = u.href; cta.target = "_blank"; cta.rel = "noopener";
+      cta.textContent = "Passer à la formule Commerçant (" + (H.cfg.PAID_PRICE || "15 €/mois") + ")";
+    } else {
+      cta.href = "../contact.html";
+      cta.textContent = "Passer en clients illimités : nous contacter";
+    }
+  }
   H.$("#s-stamps").textContent = st.count ?? 0;
   H.$("#s-rewards").textContent = rw.count ?? 0;
   const names = Object.fromEntries((custs.data || []).map((x) => [x.id, x.first_name]));

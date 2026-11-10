@@ -10,5 +10,9 @@ window.HABITUE_CONFIG = {
   SUPABASE_ANON_KEY: "sb_publishable_35O6HoQ4RnCbUdRNxyQ_PA_FSMlQlcm",
   // Affichés sur les pages Contact et Confidentialité :
   EDITOR_NAME: "",      // ton nom ou celui de ta micro-entreprise
-  CONTACT_EMAIL: ""     // ton e-mail de contact
+  CONTACT_EMAIL: "",    // ton e-mail de contact
+  // Lien de paiement Stripe de la formule Commerçant (vide tant qu'il n'existe pas) :
+  PAYMENT_LINK: "",
+  FREE_LIMIT: 30,       // nombre de clients inclus dans la formule Découverte
+  PAID_PRICE: "15 €/mois"
 };
