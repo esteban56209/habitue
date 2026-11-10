@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comment ça marche — Habitué</title>
+<meta name="description" content="Le fonctionnement d'Habitué en détail : création de la carte, QR code, validation par code PIN.">
+
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top" id="top"></header>
+<main>
+<section class="section"><div class="wrap prose">
+  <h1>Comment ça marche</h1>
+  <p class="lead">Habitué remplace la carte à tamponner en carton par une carte dans le téléphone de vos clients.</p>
+
+  <h2>Côté commerçant</h2>
+  <p><strong>1. Vous créez votre compte</strong> avec votre e-mail, puis votre carte : nom du commerce, nombre de tampons (de 3 à 20) et récompense.</p>
+  <p><strong>2. Vous choisissez un code PIN</strong> de 4 à 6 chiffres. Il sert à valider chaque tampon. Vous pouvez le changer quand vous voulez.</p>
+  <p><strong>3. Vous imprimez votre affiche</strong> avec le QR code et vous la posez près de la caisse.</p>
+  <p><strong>4. Vous suivez vos chiffres</strong> dans le tableau de bord : clients inscrits, passages, récompenses offertes.</p>
+
+  <h2>Côté client</h2>
+  <p><strong>1. Il scanne le QR code</strong> avec l'appareil photo de son téléphone.</p>
+  <p><strong>2. Il entre son prénom et son téléphone ou e-mail</strong>, une seule fois. Aucun mot de passe, aucune application.</p>
+  <p><strong>3. À chaque passage</strong>, il rescanne le QR code, vous tend son téléphone, et vous tapez votre PIN.</p>
+  <p><strong>4. Quand la carte est pleine</strong>, la récompense s'affiche. Vous la validez avec votre PIN et la carte repart à zéro.</p>
+
+  <h2>Tarif</h2>
+  <div class="card" style="max-width:420px">
+    <div class="price">0 €</div>
+    <p><strong>Gratuit pendant la période de lancement.</strong></p>
+    <p class="muted">Toutes les fonctions sont incluses. Les futurs tarifs seront annoncés à l'avance, et vous resterez libre d'arrêter à tout moment.</p>
+    <a class="btn block" href="inscription.html">Créer ma carte</a>
+  </div>
+
+  <h2>Questions fréquentes</h2>
+  <p><strong>Mes clients doivent-ils installer une application ?</strong><br>Non. Tout se passe dans le navigateur de leur téléphone.</p>
+  <p><strong>Et si un client change de téléphone ?</strong><br>Il rescanne le QR code et entre le même téléphone ou e-mail : il retrouve ses tampons.</p>
+  <p><strong>Un client peut-il s'ajouter des tampons seul ?</strong><br>Non, il faut votre code PIN. Après 5 codes faux, la validation se bloque 15 minutes pour ce client.</p>
+  <p><strong>Que deviennent les données de mes clients ?</strong><br>Elles servent uniquement à votre programme de fidélité. Détails sur la page <a href="confidentialite.html">Confidentialité</a>.</p>
+</div></section>
+</main>
+<footer class="foot" id="foot"></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="js/config.js"></script>
+<script src="js/common.js"></script>
+<script>
+
+</script>
+</body>
+</html>
