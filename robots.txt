@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /app/
+Disallow: /admin
+Disallow: /c$
+Disallow: /c?
+Disallow: /c.html
+Disallow: /supabase/
+
+Sitemap: https://habitue.macartefidelite.workers.dev/sitemap.xml

@@ -19,6 +19,9 @@ Site en HTML / CSS / JavaScript simples : rien à installer, rien à compiler.
 | `admin.html` | Ton interface d'administration (commerçants + messages) |
 | `contact.html` | Formulaire de contact (messages visibles dans l'admin) |
 | `confidentialite.html` | Politique de confidentialité |
+| `carte-fidelite-*.html` | Pages par métier, pour être trouvé sur Google |
+| `sitemap.xml`, `robots.txt` | Indiquent à Google quelles pages lire et lesquelles ignorer |
+| `_headers` | En-têtes de sécurité envoyés par l'hébergeur avec chaque page |
 | `css/style.css` | Toute l'apparence du site (couleurs, boutons, mobile) |
 | `js/config.js` | **Le seul fichier à modifier** : adresse et clé de ta base Supabase |
 | `js/common.js` | Code partagé : connexion à la base, menu, messages d'erreur |

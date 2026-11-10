@@ -87,7 +87,8 @@
     if (top) top.innerHTML = `<div class="wrap"><a class="brand" href="${root}index.html"><img src="${root}assets/icon.svg" alt="">Habitué</a><nav class="nav" aria-label="Menu">${nav}</nav></div>`;
     const foot = document.getElementById("foot");
     if (foot) foot.innerHTML = `<div class="wrap"><div>© ${new Date().getFullYear()} Habitué — La carte de fidélité sans carton</div>
-      <div><a href="${root}service.html">Comment ça marche</a><a href="${root}contact.html">Contact</a><a href="${root}confidentialite.html">Confidentialité</a></div></div>`;
+      <div><a href="${root}service.html">Comment ça marche</a><a href="${root}contact.html">Contact</a><a href="${root}confidentialite.html">Confidentialité</a></div>
+      <div style="flex-basis:100%">Carte de fidélité pour : <a href="${root}carte-fidelite-boulangerie.html">boulangerie</a><a href="${root}carte-fidelite-coiffeur.html">coiffeur</a><a href="${root}carte-fidelite-restaurant.html">restaurant</a><a href="${root}carte-fidelite-digitale-gratuite.html">gratuite</a></div></div>`;
     const lo = document.getElementById("logout");
     if (lo) lo.addEventListener("click", (e) => { e.preventDefault(); H.logout(); });
     if (!configured) {
